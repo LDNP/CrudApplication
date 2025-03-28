@@ -1,0 +1,35 @@
+version: 2.1
+workflows:
+  build:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - main
+jobs:
+  build:
+    working_directory: ~/CrudApplication
+    docker:
+      - image: cimg/node:18.20.7
+    steps:
+      - checkout
+
+      - run:
+          name: Update npm version
+          command: npm install -g npm@10.8.2  
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package-lock.json" }}
+
+      - run:
+          name: Install dependencies
+          command: npm install
+
+      - run:
+          name: Build React app
+          command: npm run build  # This builds the React app for production
+
+      - save_cache:
+          paths:
+            - ~/.npm
+          key: dependency-cache-{{ checksum "package-lock.json" }}
