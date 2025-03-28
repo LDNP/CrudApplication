@@ -30,7 +30,7 @@ jobs:
           command: npm run build  # This builds the React app for production
       - run:
           name: Run Tests
-          command: npm run tests
+          command: npm test
       - save_cache:
           paths:
             - ~/.npm
