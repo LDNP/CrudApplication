@@ -1,51 +1,70 @@
-const express = require("express");
-const fs = require("fs");
-const cors = require("cors");
-
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const cors = require('cors');
 const app = express();
-const PORT = process.env.PORT || 5000;
-const DATA_FILE = "./data.json";
 
+// Enable CORS for frontend communication
 app.use(cors());
 app.use(express.json());
 
-// Fetch books
-app.get("/books", (req, res) => {
-  fs.readFile(DATA_FILE, "utf8", (err, data) => {
-    if (err) return res.status(500).json({ error: "Failed to read data" });
-    res.json(JSON.parse(data));
-  });
+// Define the path to the data file
+const dataPath = path.join(__dirname, 'data.json');
+
+// Helper function to read data from data.json
+const readData = () => {
+  const data = fs.readFileSync(dataPath, 'utf8');
+  return JSON.parse(data);
+};
+
+// Helper function to write data to data.json
+const writeData = (data) => {
+  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+};
+
+// GET: Fetch all books
+app.get('/api/books', (req, res) => {
+  const books = readData();
+  res.json(books);
 });
 
-// Add a book
-app.post("/books", (req, res) => {
-  fs.readFile(DATA_FILE, "utf8", (err, data) => {
-    if (err) return res.status(500).json({ error: "Failed to read data" });
-
-    const books = JSON.parse(data);
-    const newBook = { id: Date.now(), ...req.body };
-    books.push(newBook);
-
-    fs.writeFile(DATA_FILE, JSON.stringify(books, null, 2), (err) => {
-      if (err) return res.status(500).json({ error: "Failed to save data" });
-      res.json(newBook);
-    });
-  });
+// POST: Add a new book
+app.post('/api/books', (req, res) => {
+  const { title, author } = req.body;
+  const newBook = { id: Date.now(), title, author };
+  const books = readData();
+  books.push(newBook);
+  writeData(books);
+  res.status(201).json(newBook);
 });
 
-// Delete a book
-app.delete("/books/:id", (req, res) => {
-  fs.readFile(DATA_FILE, "utf8", (err, data) => {
-    if (err) return res.status(500).json({ error: "Failed to read data" });
+// PUT: Update a book
+app.put('/api/books/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, author } = req.body;
+  const books = readData();
+  const bookIndex = books.findIndex((book) => book.id === parseInt(id));
 
-    let books = JSON.parse(data);
-    books = books.filter((book) => book.id !== parseInt(req.params.id));
+  if (bookIndex === -1) {
+    return res.status(404).json({ message: 'Book not found' });
+  }
 
-    fs.writeFile(DATA_FILE, JSON.stringify(books, null, 2), (err) => {
-      if (err) return res.status(500).json({ error: "Failed to save data" });
-      res.json({ message: "Book deleted" });
-    });
-  });
+  books[bookIndex] = { id: parseInt(id), title, author };
+  writeData(books);
+  res.json(books[bookIndex]);
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// DELETE: Remove a book
+app.delete('/api/books/:id', (req, res) => {
+  const { id } = req.params;
+  let books = readData();
+  books = books.filter((book) => book.id !== parseInt(id));
+  writeData(books);
+  res.status(204).end();
+});
+
+// Server running on port 5000
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
