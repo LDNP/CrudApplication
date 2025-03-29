@@ -5,9 +5,13 @@ function App() {
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    // Fetch books from backend when component mounts
     fetch('/api/books')
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Error: ${response.statusText}`);
+        }
+        return response.json();  // Only parse if response is valid
+      })
       .then((data) => setBooks(data))
       .catch((err) => console.error('Error fetching books:', err));
   }, []);

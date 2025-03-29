@@ -5,22 +5,30 @@ const cors = require('cors');
 const app = express();
 
 // Enable CORS for frontend communication
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+    origin: 'http://localhost:3000', // Allow specific origin
+  }));
 
 // Define the path to the data file
 const dataPath = path.join(__dirname, 'data.json');
 
-// Helper function to read data from data.json
 const readData = () => {
-  const data = fs.readFileSync(dataPath, 'utf8');
-  return JSON.parse(data);
-};
-
-// Helper function to write data to data.json
-const writeData = (data) => {
-  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
-};
+    try {
+      const data = fs.readFileSync(dataPath, 'utf8');
+      return JSON.parse(data);  // May throw error if not valid JSON
+    } catch (error) {
+      console.error('Error reading data:', error);
+      return [];  // Return empty array if there's an error
+    }
+  };
+  
+  const writeData = (data) => {
+    try {
+      fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('Error writing data:', error);
+    }
+  };
 
 // GET: Fetch all books
 app.get('/api/books', (req, res) => {
