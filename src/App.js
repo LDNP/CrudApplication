@@ -1,69 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+
+const API_URL = "http://localhost:5000/books";
 
 function App() {
-  const [books, setBooks] = useState(() => {
-    const savedBooks = localStorage.getItem('books');
-    return savedBooks ? JSON.parse(savedBooks) : [];
-  });
-
+  const [books, setBooks] = useState([]);
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem('books', JSON.stringify(books));
-  }, [books]);
+    fetch(API_URL)
+      .then((res) => res.json())
+      .then(setBooks)
+      .catch(console.error);
+  }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const title = e.target.title.value;
     const author = e.target.author.value;
 
-    if (title && author) {
-      if (editingId) {
-        setBooks(books.map((book) =>
-          book.id === editingId ? { id: editingId, title, author } : book
-        ));
-        setEditingId(null);
-      } else {
-        setBooks([...books, { id: Date.now(), title, author }]);
-      }
-    }
+    if (!title || !author) return;
+
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, author }),
+    });
+
+    const data = await response.json();
+    setBooks([...books, data]);
     e.target.reset();
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
     setBooks(books.filter((book) => book.id !== id));
-  };
-
-  const handleEditChange = (id, field, value) => {
-    setBooks(books.map((book) =>
-      book.id === id ? { ...book, [field]: value } : book
-    ));
   };
 
   return (
     <div>
       <h1>Book List</h1>
       <form onSubmit={handleSubmit}>
-        <input name="title" placeholder="Book Title" />
-        <input name="author" placeholder="Author" />
-        <button type="submit">{editingId ? 'Update Book' : 'Add Book'}</button>
+        <input name="title" placeholder="Book Title" required />
+        <input name="author" placeholder="Author" required />
+        <button type="submit">Add Book</button>
       </form>
       <ul>
         {books.map((book) => (
           <li key={book.id}>
-            {editingId === book.id ? (
-              <>
-                <input value={book.title} onChange={(e) => handleEditChange(book.id, 'title', e.target.value)} />
-                <input value={book.author} onChange={(e) => handleEditChange(book.id, 'author', e.target.value)} />
-                <button onClick={() => setEditingId(null)}>Save</button>
-              </>
-            ) : (
-              <>
-                {book.title} by {book.author}
-                <button onClick={() => setEditingId(book.id)}>Edit</button>
-                <button onClick={() => handleDelete(book.id)}>Delete</button>
-              </>
-            )}
+            {book.title} by {book.author}
+            <button onClick={() => handleDelete(book.id)}>Delete</button>
           </li>
         ))}
       </ul>
